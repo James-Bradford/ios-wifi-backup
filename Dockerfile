@@ -48,6 +48,9 @@ RUN apt-get update && apt-get install -y \
 # Copy built libs + tools
 COPY --from=builder /usr/local /usr/local
 
+# Make sure runtime linker knows about new libs
+RUN echo "/usr/local/lib" > /etc/ld.so.conf.d/libimobiledevice.conf && ldconfig
+
 # Copy scripts
 COPY backup.sh /usr/local/bin/backup.sh
 COPY entrypoint.sh /entrypoint.sh
