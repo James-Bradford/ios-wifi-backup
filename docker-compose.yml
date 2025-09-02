@@ -1,16 +1,15 @@
+version: "3.8"
 services:
+
   ios-wifi-backup:
-    image: jamesbradford/ios-wifi-backup:latest
+    build: .
     container_name: ios-wifi-backup
     network_mode: host
-    privileged: true
+    # No privileged, no /dev/bus/usb; Wi-Fi only
     volumes:
       - ./backups:/backups
-      - ./pairing:/pairing
-      - /var/run/usbmuxd:/var/run/usbmuxd
       - /var/lib/lockdown:/var/lib/lockdown:ro
     environment:
       - BACKUP_PASSWORD=yourpass
       - CRON_SCHEDULE=*/15 * * * *
-      - KEEP_COUNT=7
     restart: unless-stopped
