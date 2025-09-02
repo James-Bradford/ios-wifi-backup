@@ -1,49 +1,54 @@
 # ---------- Builder ----------
 FROM ubuntu:22.04 as builder
-
 ENV DEBIAN_FRONTEND=noninteractive
 
 # Build dependencies
 RUN apt-get update && apt-get install -y \
-    build-essential autoconf automake libtool pkg-config git \
-    libssl-dev libusb-1.0-0-dev libplist-dev \
-    libcurl4-openssl-dev \
-    ca-certificates curl \
-    && rm -rf /var/lib/apt/lists/*
+  build-essential autoconf automake libtool pkg-config git \
+  clang \
+  libssl-dev libusb-1.0-0-dev libplist-dev libcurl4-openssl-dev \
+  libavahi-client-dev libavahi-common-dev \
+  ca-certificates curl \
+  && rm -rf /var/lib/apt/lists/*
 
 # libplist
 RUN git clone https://github.com/libimobiledevice/libplist.git /tmp/libplist \
-  && cd /tmp/libplist && ./autogen.sh && make -j$(nproc) && make install && ldconfig \
+  && cd /tmp/libplist && ./autogen.sh && make -j"$(nproc)" && make install && ldconfig \
   && rm -rf /tmp/libplist
 
 # libimobiledevice-glue
 RUN git clone https://github.com/libimobiledevice/libimobiledevice-glue.git /tmp/glue \
-  && cd /tmp/glue && ./autogen.sh && make -j$(nproc) && make install && ldconfig \
+  && cd /tmp/glue && ./autogen.sh && make -j"$(nproc)" && make install && ldconfig \
   && rm -rf /tmp/glue
 
-# libusbmuxd
+# libusbmuxd (client library; env var support for USBMUXD_SOCKET_ADDRESS)
 RUN git clone https://github.com/libimobiledevice/libusbmuxd.git /tmp/libusbmuxd \
-  && cd /tmp/libusbmuxd && ./autogen.sh && make -j$(nproc) && make install && ldconfig \
+  && cd /tmp/libusbmuxd && ./autogen.sh && make -j"$(nproc)" && make install && ldconfig \
   && rm -rf /tmp/libusbmuxd
 
-# libtatsu (needs libcurl-dev)
+# libtatsu
 RUN git clone https://github.com/libimobiledevice/libtatsu.git /tmp/libtatsu \
-  && cd /tmp/libtatsu && ./autogen.sh && make -j$(nproc) && make install && ldconfig \
+  && cd /tmp/libtatsu && ./autogen.sh && make -j"$(nproc)" && make install && ldconfig \
   && rm -rf /tmp/libtatsu
 
-# libimobiledevice (backup tools, network support)
+# libimobiledevice (tools: idevicebackup2, idevice_id, idevicepair, etc.)
 RUN git clone https://github.com/libimobiledevice/libimobiledevice.git /tmp/libimobiledevice \
-  && cd /tmp/libimobiledevice && ./autogen.sh && make -j$(nproc) && make install && ldconfig \
+  && cd /tmp/libimobiledevice && ./autogen.sh && make -j"$(nproc)" && make install && ldconfig \
   && rm -rf /tmp/libimobiledevice
+
+# usbmuxd2 (Wi-Fi-capable muxer)
+RUN git clone https://github.com/tihmstar/usbmuxd2.git /tmp/usbmuxd2 \
+  && cd /tmp/usbmuxd2 && ./autogen.sh && ./configure --prefix=/usr/local \
+  && make -j"$(nproc)" && make install && ldconfig \
+  && rm -rf /tmp/usbmuxd2
 
 # ---------- Runtime ----------
 FROM ubuntu:22.04
-
 ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update && apt-get install -y \
-    avahi-utils cron \
-    && rm -rf /var/lib/apt/lists/*
+  avahi-utils cron \
+  && rm -rf /var/lib/apt/lists/*
 
 # Copy built libs + tools
 COPY --from=builder /usr/local /usr/local
@@ -51,7 +56,7 @@ COPY --from=builder /usr/local /usr/local
 # Make sure runtime linker knows about new libs
 RUN echo "/usr/local/lib" > /etc/ld.so.conf.d/libimobiledevice.conf && ldconfig
 
-# Copy scripts
+# Scripts
 COPY backup.sh /usr/local/bin/backup.sh
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /usr/local/bin/backup.sh /entrypoint.sh
