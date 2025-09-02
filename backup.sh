@@ -1,6 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 
+# ---- single-run lock ----
 LOCKFILE="/tmp/backup.lock"
 exec 9>"$LOCKFILE"
 if ! flock -n 9; then
@@ -8,10 +9,15 @@ if ! flock -n 9; then
   exit 0
 fi
 
+# ---- config ----
 BACKUP_BASE="/backups"
 PAIR_DIR="/var/lib/lockdown"   # host lockdown (read-only mount)
 export LOCKDOWN_PATH="$PAIR_DIR"
 
+TODAY="$(date +%F)"
+DOW="$(date +%u)"  # 1=Mon ... 7=Sun
+
+# Prefer network (Wi-Fi) discovery via usbmuxd2
 DEVICE_IDS="$(idevice_id -n || true)"
 
 if [ -z "$DEVICE_IDS" ]; then
@@ -27,30 +33,36 @@ echo
 
 for DEVICE_ID in $DEVICE_IDS; do
   DEVICE_DIR="$BACKUP_BASE/$DEVICE_ID"
+  MARKER="$DEVICE_DIR/.last_successful"
   mkdir -p "$DEVICE_DIR"
 
-  echo "[Device Backup] Ensuring encryption is enabled for $DEVICE_ID..."
-  if ! idevicebackup2 -n -u "$DEVICE_ID" encryption on "$BACKUP_PASSWORD"; then
-    echo "[Device Backup] ⚠️ Encryption already enabled (ok)."
+  # If today's backup already completed, skip.
+  if [ -f "$MARKER" ] && grep -qx "$TODAY" "$MARKER"; then
+    echo "[Device Backup] $DEVICE_ID already backed up successfully today ($TODAY). Skipping."
+    echo
+    continue
   fi
 
-  echo "[Device Backup] Backing up device $DEVICE_ID to $DEVICE_DIR..."
-
-  attempt_backup() {
-    if idevicebackup2 -n -u "$DEVICE_ID" backup "$DEVICE_DIR"; then
-      echo "[Device Backup] ✅ Backup for $DEVICE_ID succeeded at $(date)."
-      return 0
-    else
-      echo "[Device Backup] ❌ Backup for $DEVICE_ID failed at $(date)."
-      return 1
+  # Sunday = force full backup, and start from clean slate to avoid stale state.
+  if [ "$DOW" -eq 7 ]; then
+    echo "[Device Backup] Sunday detected — forcing FULL backup for $DEVICE_ID."
+    # Clean out the dir for a truly fresh full backup
+    rm -rf "$DEVICE_DIR"/*
+    FULL_FLAG="--full"
+  else
+    FULL_FLAG=""
+    # If a prior run left a failed status, warn (we’ll retry incrementally until success)
+    if [ -f "$DEVICE_DIR/Status.plist" ] && grep -q "Failed" "$DEVICE_DIR/Status.plist"; then
+      echo "[Device Backup] Note: previous run left a failed state for $DEVICE_ID; retrying incrementally."
     fi
-  }
+  fi
 
-  # First attempt
-  if ! attempt_backup; then
-    echo "[Device Backup] Retrying $DEVICE_ID in 5 minutes..."
-    sleep 300
-    attempt_backup || echo "[Device Backup] ❌ Backup for $DEVICE_ID failed after retry at $(date)."
+  echo "[Device Backup] Backing up $DEVICE_ID to $DEVICE_DIR..."
+  if idevicebackup2 -n -u "$DEVICE_ID" backup $FULL_FLAG "$DEVICE_DIR"; then
+    echo "$TODAY" > "$MARKER"
+    echo "[Device Backup] ✅ Backup for $DEVICE_ID succeeded at $(date)."
+  else
+    echo "[Device Backup] ❌ Backup for $DEVICE_ID failed at $(date). Will retry on next cron tick."
   fi
 
   echo
