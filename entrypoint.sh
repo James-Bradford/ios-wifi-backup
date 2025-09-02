@@ -33,7 +33,7 @@ if ! kill -0 "$USBMUXD_PID" 2>/dev/null; then
 fi
 
 # Install cron job for backups
-CRON_SCHEDULE="${CRON_SCHEDULE:-0 3 * * *}"   # nightly at 3am by default
+CRON_SCHEDULE="${CRON_SCHEDULE:-0 * * * *}" # Hourly by default
 echo "$CRON_SCHEDULE root /usr/local/bin/backup.sh >> /var/log/cron.log 2>&1" > /etc/cron.d/device-backup
 chmod 0644 /etc/cron.d/device-backup
 crontab /etc/cron.d/device-backup
