@@ -2,8 +2,8 @@
 set -e
 
 BACKUP_BASE="/backups"
-PAIR_DIR="/pairing"
-KEEP_COUNT="${KEEP_COUNT:-7}"
+PAIR_DIR="/var/lib/lockdown"   # use host’s lockdown directory
+KEEP_COUNT=1                   # no rotation needed, we only keep latest
 
 export LOCKDOWN_PATH="$PAIR_DIR"
 
@@ -21,8 +21,10 @@ done
 echo
 
 for DEVICE_ID in $DEVICE_IDS; do
-  TIMESTAMP=$(date +"%Y-%m-%d_%H-%M-%S")
-  DEVICE_DIR="$BACKUP_BASE/$DEVICE_ID/$TIMESTAMP"
+  DEVICE_DIR="$BACKUP_BASE/$DEVICE_ID/latest"
+
+  echo "[Device Backup] Preparing backup directory for $DEVICE_ID..."
+  rm -rf "$DEVICE_DIR"
   mkdir -p "$DEVICE_DIR"
 
   DAY_OF_WEEK=$(date +%u) # 1=Mon, 7=Sun
@@ -31,7 +33,7 @@ for DEVICE_ID in $DEVICE_IDS; do
     echo "[Device Backup] Sunday detected, running FULL backup for $DEVICE_ID."
   else
     EXTRA_ARGS=""
-    echo "[Device Backup] Running incremental backup for $DEVICE_ID."
+    echo "[Device Backup] Running incremental-style backup for $DEVICE_ID (will overwrite latest)."
   fi
 
   echo "[Device Backup] Ensuring encryption is enabled for $DEVICE_ID..."
@@ -46,9 +48,5 @@ for DEVICE_ID in $DEVICE_IDS; do
     echo "[Device Backup] ❌ Backup for $DEVICE_ID failed at $(date)."
   fi
 
-  # Rotate backups per device
-  echo "[Device Backup] Rotating backups for $DEVICE_ID, keeping last $KEEP_COUNT copies..."
-  cd "$BACKUP_BASE/$DEVICE_ID"
-  ls -1dt */ | tail -n +$((KEEP_COUNT+1)) | xargs -r rm -rf
   echo
 done
