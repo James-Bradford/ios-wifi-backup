@@ -1,15 +1,16 @@
-version: "3.9"
-
 services:
-  device-backup:
-    build: ./device-backup
-    container_name: device-backup
+  ios-wifi-backup:
+    image: jamesbradford/ios-wifi-backup:latest
+    container_name: ios-wifi-backup
     network_mode: host
-    environment:
-      - BACKUP_PASSWORD=yoursecret        # encryption password
-      - CRON_SCHEDULE=*/15 * * * *        # run every 15 minutes
-      - KEEP_COUNT=14                     # keep last 14 backups
+    privileged: true
     volumes:
       - ./backups:/backups
       - ./pairing:/pairing
+      - /var/run/usbmuxd:/var/run/usbmuxd
+      - /var/lib/lockdown:/var/lib/lockdown:ro
+    environment:
+      - BACKUP_PASSWORD=yourpass
+      - CRON_SCHEDULE=*/15 * * * *
+      - KEEP_COUNT=7
     restart: unless-stopped
