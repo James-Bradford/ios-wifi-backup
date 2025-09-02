@@ -1,0 +1,15 @@
+version: "3.9"
+
+services:
+  device-backup:
+    build: ./device-backup
+    container_name: device-backup
+    network_mode: host
+    environment:
+      - BACKUP_PASSWORD=yoursecret        # encryption password
+      - CRON_SCHEDULE=*/15 * * * *        # run every 15 minutes
+      - KEEP_COUNT=14                     # keep last 14 backups
+    volumes:
+      - ./backups:/backups
+      - ./pairing:/pairing
+    restart: unless-stopped
