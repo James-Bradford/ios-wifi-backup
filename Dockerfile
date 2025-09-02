@@ -35,18 +35,17 @@ RUN git clone https://github.com/libimobiledevice/libtatsu.git /tmp/libtatsu \
 RUN git clone https://github.com/libimobiledevice/libimobiledevice.git /tmp/libimobiledevice \
   && cd /tmp/libimobiledevice && ./autogen.sh && make -j"$(nproc)" && make install && ldconfig \
   && rm -rf /tmp/libimobiledevice
-  
+
 # libgeneral (dependency for usbmuxd2)
 RUN git clone https://github.com/tihmstar/libgeneral.git /tmp/libgeneral \
   && cd /tmp/libgeneral && ./autogen.sh && ./configure --prefix=/usr/local \
   && make -j"$(nproc)" && make install && ldconfig \
   && rm -rf /tmp/libgeneral
 
-# usbmuxd2 (fosple fork with direct IP support)
+# usbmuxd2 (fosple fork with direct IP support, installs as `usbmuxd`)
 RUN git clone https://github.com/fosple/usbmuxd2.git /tmp/usbmuxd2 \
   && cd /tmp/usbmuxd2 && ./autogen.sh && ./configure --prefix=/usr/local CC=clang CXX=clang++ \
   && make -j"$(nproc)" && make install && ldconfig \
-  && if [ -f /usr/local/bin/usbmuxd ]; then mv /usr/local/bin/usbmuxd /usr/local/bin/usbmuxd2; fi \
   && rm -rf /tmp/usbmuxd2
 
 # ---------- Runtime ----------
