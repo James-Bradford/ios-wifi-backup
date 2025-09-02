@@ -1,14 +1,26 @@
+# minimal example (Ubuntu base)
 FROM ubuntu:22.04
 
 RUN apt-get update && apt-get install -y \
-    libimobiledevice6 \
-    libimobiledevice-utils \
-    usbmuxd \
-    cron \
-    && rm -rf /var/lib/apt/lists/*
+  build-essential autoconf automake libtool pkg-config git \
+  libssl-dev libplist-dev libtatsu-dev \
+  avahi-utils ca-certificates curl \
+  && rm -rf /var/lib/apt/lists/*
 
-COPY backup.sh /usr/local/bin/backup.sh
-COPY entrypoint.sh /entrypoint.sh
-RUN chmod +x /usr/local/bin/backup.sh /entrypoint.sh
+# libplist
+RUN git clone https://github.com/libimobiledevice/libplist.git /tmp/libplist \
+  && cd /tmp/libplist && ./autogen.sh && make -j && make install && ldconfig
 
-CMD ["/entrypoint.sh"]
+# libimobiledevice-glue
+RUN git clone https://github.com/libimobiledevice/libimobiledevice-glue.git /tmp/glue \
+  && cd /tmp/glue && ./autogen.sh && make -j && make install && ldconfig
+
+# libusbmuxd (client lib + tools like inetcat, iproxy with --network)
+RUN git clone https://github.com/libimobiledevice/libusbmuxd.git /tmp/libusbmuxd \
+  && cd /tmp/libusbmuxd && ./autogen.sh && make -j && make install && ldconfig
+
+# libimobiledevice (idevicebackup2, idevice_id, idevicepair, etc.)
+RUN git clone https://github.com/libimobiledevice/libimobiledevice.git /tmp/libimobiledevice \
+  && cd /tmp/libimobiledevice && ./autogen.sh && make -j && make install && ldconfig
+
+# optional: ifuse, usbmuxd daemon for USB mode (not required for Wi-Fi)
