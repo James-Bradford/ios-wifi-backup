@@ -1,24 +1,31 @@
 #!/bin/bash
 set -e
 
-# Dedicated socket path for container's usbmuxd2
-SOCKET_PATH="/var/run/usbmuxd"
+# Config: IP + Pair Record ID must be passed in
+DEVICE_IP="${DEVICE_IP:?You must set DEVICE_IP env var}"
+PAIR_ID="${PAIR_ID:?You must set PAIR_ID env var}"
+
+# Dedicated socket path
+SOCKET_PATH="/var/run/usbmuxd2.sock"
 export USBMUXD_SOCKET_ADDRESS="$SOCKET_PATH"
 
-# Make sure the run directory exists
 mkdir -p /var/run
 
-# Start usbmuxd2 with Wi-Fi support + daemon mode
-echo "[Entrypoint] Starting usbmuxd2 (daemon mode) on $SOCKET_PATH..."
-/usr/local/bin/usbmuxd2 --debug --allow-heartless-wifi -v --no-usb -d -l /var/log/usbmuxd2.log
+# Start usbmuxd2 in direct-IP mode
+echo "[Entrypoint] Starting usbmuxd2 for $DEVICE_IP with pair record $PAIR_ID..."
+/usr/local/bin/usbmuxd2 \
+  --debug \
+  --allow-heartless-wifi \
+  --no-usb \
+  -c "$DEVICE_IP" \
+  --pair-record-id "$PAIR_ID" \
+  -l /var/log/usbmuxd2.log &
 USBMUXD_PID=$!
 
-# Give usbmuxd2 a moment to start
 sleep 2
 
-# Check if usbmuxd2 is running
 if ! kill -0 "$USBMUXD_PID" 2>/dev/null; then
-  echo "[Entrypoint] ❌ usbmuxd2 failed to start. Check /var/log/usbmuxd2.log for details."
+  echo "[Entrypoint] ❌ usbmuxd2 failed to start. Check /var/log/usbmuxd2.log."
   exit 1
 fi
 
@@ -32,8 +39,7 @@ echo "[Entrypoint] Installed cron job: $CRON_SCHEDULE"
 # Start cron
 service cron start
 
-# Container ready
 echo "[Entrypoint] Container ready. usbmuxd2 PID=$USBMUXD_PID (socket: $SOCKET_PATH)"
 
-# Tail logs so `docker logs` shows activity
+# Tail logs for visibility
 exec tail -F /var/log/cron.log /var/log/usbmuxd2.log
