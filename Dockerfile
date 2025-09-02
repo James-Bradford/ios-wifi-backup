@@ -42,10 +42,11 @@ RUN git clone https://github.com/tihmstar/libgeneral.git /tmp/libgeneral \
   && make -j"$(nproc)" && make install && ldconfig \
   && rm -rf /tmp/libgeneral
 
-# usbmuxd2 (fosple fork with direct IP support, installs as `usbmuxd`)
+# usbmuxd2 (fosple fork with direct IP support)
 RUN git clone https://github.com/fosple/usbmuxd2.git /tmp/usbmuxd2 \
   && cd /tmp/usbmuxd2 && ./autogen.sh && ./configure --prefix=/usr/local CC=clang CXX=clang++ \
   && make -j"$(nproc)" && make install && ldconfig \
+  && cp /usr/local/sbin/usbmuxd2 /usr/local/bin/usbmuxd \
   && rm -rf /tmp/usbmuxd2
 
 # ---------- Runtime ----------
