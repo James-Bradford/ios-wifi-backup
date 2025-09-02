@@ -1,11 +1,17 @@
 #!/bin/bash
 set -e
 
+LOCKFILE="/tmp/backup.lock"
+exec 9>"$LOCKFILE"
+if ! flock -n 9; then
+  echo "[Device Backup] Another backup is already running, exiting at $(date)."
+  exit 0
+fi
+
 BACKUP_BASE="/backups"
 PAIR_DIR="/var/lib/lockdown"   # host lockdown (read-only mount)
 export LOCKDOWN_PATH="$PAIR_DIR"
 
-# Prefer network (Wi-Fi) devices
 DEVICE_IDS="$(idevice_id -n || true)"
 
 if [ -z "$DEVICE_IDS" ]; then
@@ -20,9 +26,7 @@ done
 echo
 
 for DEVICE_ID in $DEVICE_IDS; do
-  DEVICE_DIR="$BACKUP_BASE/$DEVICE_ID/latest"
-  echo "[Device Backup] Preparing backup directory for $DEVICE_ID..."
-  rm -rf "$DEVICE_DIR"
+  DEVICE_DIR="$BACKUP_BASE/$DEVICE_ID"
   mkdir -p "$DEVICE_DIR"
 
   echo "[Device Backup] Ensuring encryption is enabled for $DEVICE_ID..."
