@@ -21,7 +21,7 @@ RUN git clone https://github.com/libimobiledevice/libimobiledevice-glue.git /tmp
   && cd /tmp/glue && ./autogen.sh && make -j"$(nproc)" && make install && ldconfig \
   && rm -rf /tmp/glue
 
-# libusbmuxd
+# libusbmuxd (client library; env var support for USBMUXD_SOCKET_ADDRESS)
 RUN git clone https://github.com/libimobiledevice/libusbmuxd.git /tmp/libusbmuxd \
   && cd /tmp/libusbmuxd && ./autogen.sh && make -j"$(nproc)" && make install && ldconfig \
   && rm -rf /tmp/libusbmuxd
@@ -31,12 +31,12 @@ RUN git clone https://github.com/libimobiledevice/libtatsu.git /tmp/libtatsu \
   && cd /tmp/libtatsu && ./autogen.sh && make -j"$(nproc)" && make install && ldconfig \
   && rm -rf /tmp/libtatsu
 
-# libimobiledevice
+# libimobiledevice (tools: idevicebackup2, idevice_id, idevicepair, etc.)
 RUN git clone https://github.com/libimobiledevice/libimobiledevice.git /tmp/libimobiledevice \
   && cd /tmp/libimobiledevice && ./autogen.sh && make -j"$(nproc)" && make install && ldconfig \
   && rm -rf /tmp/libimobiledevice
-
-# libgeneral
+  
+# libgeneral (dependency for usbmuxd2)
 RUN git clone https://github.com/tihmstar/libgeneral.git /tmp/libgeneral \
   && cd /tmp/libgeneral && ./autogen.sh && ./configure --prefix=/usr/local \
   && make -j"$(nproc)" && make install && ldconfig \
@@ -46,6 +46,7 @@ RUN git clone https://github.com/tihmstar/libgeneral.git /tmp/libgeneral \
 RUN git clone https://github.com/fosple/usbmuxd2.git /tmp/usbmuxd2 \
   && cd /tmp/usbmuxd2 && ./autogen.sh && ./configure --prefix=/usr/local CC=clang CXX=clang++ \
   && make -j"$(nproc)" && make install && ldconfig \
+  && if [ -f /usr/local/bin/usbmuxd ]; then mv /usr/local/bin/usbmuxd /usr/local/bin/usbmuxd2; fi \
   && rm -rf /tmp/usbmuxd2
 
 # ---------- Runtime ----------
@@ -59,7 +60,7 @@ RUN apt-get update && apt-get install -y \
 # Copy built libs + tools
 COPY --from=builder /usr/local /usr/local
 
-# Runtime linker config
+# Make sure runtime linker knows about new libs
 RUN echo "/usr/local/lib" > /etc/ld.so.conf.d/libimobiledevice.conf && ldconfig
 
 # Scripts
