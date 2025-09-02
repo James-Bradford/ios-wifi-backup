@@ -10,7 +10,7 @@ mkdir -p /var/run
 
 # Start usbmuxd2 with Wi-Fi support + debug logs
 echo "[Entrypoint] Starting usbmuxd2 on $SOCKET_PATH..."
-/usr/local/bin/usbmuxd2 --debug --allow-heartless-wifi -v --no-usb --socket "$SOCKET_PATH" > /var/log/usbmuxd2.log 2>&1 &
+/usr/local/bin/usbmuxd2 --debug --allow-heartless-wifi -v --no-usb > /var/log/usbmuxd2.log 2>&1 &
 USBMUXD_PID=$!
 
 # Give usbmuxd2 a moment to start
