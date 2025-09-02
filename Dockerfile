@@ -1,11 +1,10 @@
-# minimal example (Ubuntu base)
 FROM ubuntu:22.04
 
 RUN apt-get update && apt-get install -y \
-  build-essential autoconf automake libtool pkg-config git \
-  libssl-dev libplist-dev libtatsu-dev \
-  avahi-utils ca-certificates curl \
-  && rm -rf /var/lib/apt/lists/*
+    build-essential autoconf automake libtool pkg-config git \
+    libssl-dev libplist-dev libusb-1.0-0-dev \
+    avahi-utils ca-certificates curl \
+    && rm -rf /var/lib/apt/lists/*
 
 # libplist
 RUN git clone https://github.com/libimobiledevice/libplist.git /tmp/libplist \
