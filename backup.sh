@@ -34,8 +34,13 @@ for DEVICE_ID in $DEVICE_IDS; do
     echo "[Device Backup] Running incremental backup for $DEVICE_ID."
   fi
 
+  echo "[Device Backup] Ensuring encryption is enabled for $DEVICE_ID..."
+  if ! idevicebackup2 -u "$DEVICE_ID" encryption on "$BACKUP_PASSWORD"; then
+    echo "[Device Backup] ⚠️ Failed to enable encryption for $DEVICE_ID (it may already be set)."
+  fi
+
   echo "[Device Backup] Backing up device $DEVICE_ID to $DEVICE_DIR..."
-  if idevicebackup2 -u "$DEVICE_ID" backup $EXTRA_ARGS --encrypt --password "$BACKUP_PASSWORD" "$DEVICE_DIR"; then
+  if idevicebackup2 -u "$DEVICE_ID" backup $EXTRA_ARGS "$DEVICE_DIR"; then
     echo "[Device Backup] ✅ Backup for $DEVICE_ID succeeded at $(date)."
   else
     echo "[Device Backup] ❌ Backup for $DEVICE_ID failed at $(date)."
