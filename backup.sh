@@ -1,5 +1,5 @@
 #!/bin/bash
-set -e
+set -euo pipefail
 
 LOCKFILE="/tmp/backup.lock"
 exec 9>"$LOCKFILE"
@@ -31,14 +31,26 @@ for DEVICE_ID in $DEVICE_IDS; do
 
   echo "[Device Backup] Ensuring encryption is enabled for $DEVICE_ID..."
   if ! idevicebackup2 -n -u "$DEVICE_ID" encryption on "$BACKUP_PASSWORD"; then
-    echo "[Device Backup] ⚠️ Encryption enable may have already been set."
+    echo "[Device Backup] ⚠️ Encryption already enabled (ok)."
   fi
 
   echo "[Device Backup] Backing up device $DEVICE_ID to $DEVICE_DIR..."
-  if idevicebackup2 -n -u "$DEVICE_ID" backup "$DEVICE_DIR"; then
-    echo "[Device Backup] ✅ Backup for $DEVICE_ID succeeded at $(date)."
-  else
-    echo "[Device Backup] ❌ Backup for $DEVICE_ID failed at $(date)."
+
+  attempt_backup() {
+    if idevicebackup2 -n -u "$DEVICE_ID" backup "$DEVICE_DIR"; then
+      echo "[Device Backup] ✅ Backup for $DEVICE_ID succeeded at $(date)."
+      return 0
+    else
+      echo "[Device Backup] ❌ Backup for $DEVICE_ID failed at $(date)."
+      return 1
+    fi
+  }
+
+  # First attempt
+  if ! attempt_backup; then
+    echo "[Device Backup] Retrying $DEVICE_ID in 5 minutes..."
+    sleep 300
+    attempt_backup || echo "[Device Backup] ❌ Backup for $DEVICE_ID failed after retry at $(date)."
   fi
 
   echo
