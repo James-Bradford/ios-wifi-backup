@@ -45,7 +45,9 @@ RUN git clone https://github.com/tihmstar/libgeneral.git /tmp/libgeneral \
 # usbmuxd2 (Wi-Fi-capable muxer)
 RUN git clone https://github.com/tihmstar/usbmuxd2.git /tmp/usbmuxd2 \
   && cd /tmp/usbmuxd2 && ./autogen.sh && ./configure --prefix=/usr/local \
-  && make -j"$(nproc)" && make install && ldconfig \
+  && make -j"$(nproc)" \
+  && cp usbmuxd2/usbmuxd2 /usr/local/bin/usbmuxd2 \
+  && make install && ldconfig \
   && rm -rf /tmp/usbmuxd2
 
 # ---------- Runtime ----------
@@ -67,4 +69,5 @@ COPY backup.sh /usr/local/bin/backup.sh
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /usr/local/bin/backup.sh /entrypoint.sh
 
+# Default CMD runs entrypoint (which should now run usbmuxd2 -f -v in foreground)
 CMD ["/entrypoint.sh"]
