@@ -35,18 +35,18 @@ RUN git clone https://github.com/libimobiledevice/libtatsu.git /tmp/libtatsu \
 RUN git clone https://github.com/libimobiledevice/libimobiledevice.git /tmp/libimobiledevice \
   && cd /tmp/libimobiledevice && ./autogen.sh && make -j"$(nproc)" && make install && ldconfig \
   && rm -rf /tmp/libimobiledevice
-  
+
 # libgeneral (dependency for usbmuxd2)
 RUN git clone https://github.com/tihmstar/libgeneral.git /tmp/libgeneral \
-    && cd /tmp/libgeneral && ./autogen.sh && ./configure --prefix=/usr/local \
-    && make -j"$(nproc)" && make install && ldconfig \
-    && rm -rf /tmp/libgeneral
+  && cd /tmp/libgeneral && ./autogen.sh && ./configure --prefix=/usr/local \
+  && make -j"$(nproc)" && make install && ldconfig \
+  && rm -rf /tmp/libgeneral
 
-# usbmuxd2 (Wi-Fi-capable muxer)
+# usbmuxd2 (Wi-Fi-capable muxer, binary is actually "usbmuxd")
 RUN git clone https://github.com/tihmstar/usbmuxd2.git /tmp/usbmuxd2 \
   && cd /tmp/usbmuxd2 && ./autogen.sh && ./configure --prefix=/usr/local \
   && make -j"$(nproc)" \
-  && cp usbmuxd2/usbmuxd2 /usr/local/bin/usbmuxd2 \
+  && (cp usbmuxd2/usbmuxd /usr/local/bin/usbmuxd2 || cp usbmuxd /usr/local/bin/usbmuxd2) \
   && make install && ldconfig \
   && rm -rf /tmp/usbmuxd2
 
@@ -69,5 +69,4 @@ COPY backup.sh /usr/local/bin/backup.sh
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /usr/local/bin/backup.sh /entrypoint.sh
 
-# Default CMD runs entrypoint (which should now run usbmuxd2 -f -v in foreground)
 CMD ["/entrypoint.sh"]
