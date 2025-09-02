@@ -6,7 +6,7 @@ export USBMUXD_SOCKET_ADDRESS=/var/run/usbmuxd
 
 # Start usbmuxd2 in the foreground with verbose logging
 echo "[Entrypoint] Starting usbmuxd2..."
-/usr/local/bin/usbmuxd2 -f -v &
+/usr/local/bin/usbmuxd2 --debug --allow-heartless-wifi -v &
 USBMUXD_PID=$!
 
 # Give usbmuxd2 a moment to create the socket
