@@ -56,6 +56,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update && apt-get install -y \
   avahi-utils cron \
+  libusb-1.0-0 \
   && rm -rf /var/lib/apt/lists/*
 
 # Copy built libs + tools
